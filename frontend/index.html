@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Monetize360 — Universal Dynamic Pricing Engine</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Monetize360</h1>
+    <span class="tagline">Universal Dynamic Pricing Engine</span>
+    <div class="spacer"></div>
+    <label class="muted" for="domainSelect">Domain</label>
+    <select id="domainSelect"></select>
+    <button id="addDomainBtn">+ Add New Domain</button>
+  </header>
+
+  <nav class="tabs">
+    <button data-tab="config" class="active">Configuration</button>
+    <button data-tab="simulate">Simulation Console</button>
+    <button data-tab="price">Price Explainer</button>
+    <button data-tab="audit">Audit Log</button>
+    <button data-tab="copilot">AI Copilot</button>
+  </nav>
+
+  <main>
+    <section id="tab-config">
+      <div class="row">
+        <div class="col panel">
+          <h2>Entity &amp; Attributes</h2>
+          <div id="configMeta"></div>
+          <table id="attrTable"><thead><tr><th>Attribute</th><th>Type</th><th>Description</th></tr></thead><tbody></tbody></table>
+        </div>
+        <div class="col panel">
+          <h2>Versions</h2>
+          <table id="versionTable"><thead><tr><th>Version</th><th>Status</th><th>Created</th><th>Note</th><th></th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col panel">
+          <h2>Rules (priority order)</h2>
+          <table id="rulesTable"><thead><tr><th>Priority</th><th>Rule</th><th>Condition</th><th>Adjustment</th><th>Tags</th></tr></thead><tbody></tbody></table>
+        </div>
+        <div class="col panel">
+          <h2>Conflict Detection</h2>
+          <div id="conflictsPanel" class="muted">No conflicts detected.</div>
+          <h2 style="margin-top:16px">Constraints</h2>
+          <table id="constraintsTable"><thead><tr><th>Type</th><th>Value</th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Raw Config (JSON)</h2>
+        <pre class="json" id="rawConfig"></pre>
+      </div>
+    </section>
+
+    <section id="tab-simulate" class="hidden">
+      <div class="panel">
+        <div class="flex-between">
+          <h2 style="margin:0">What-If Simulation</h2>
+          <button id="runSimBtn" class="primary">Run Built-in Test Cases</button>
+        </div>
+        <div class="kpi-row" id="simKpis"></div>
+        <table id="simTable"><thead><tr><th>Case</th><th>Expected</th><th>Actual</th><th>Result</th><th></th></tr></thead><tbody></tbody></table>
+      </div>
+      <div class="panel" id="simExplainPanel" style="display:none">
+        <h2>Explanation</h2>
+        <div id="simExplainBody"></div>
+      </div>
+    </section>
+
+    <section id="tab-price" class="hidden">
+      <div class="row">
+        <div class="col panel">
+          <h2>Request Context (JSON)</h2>
+          <textarea id="priceContext" class="context-input"></textarea>
+          <div style="margin-top:10px">
+            <button id="computePriceBtn" class="primary">Compute Price</button>
+          </div>
+        </div>
+        <div class="col panel">
+          <h2>Result</h2>
+          <div id="priceResultSummary" class="kpi-row"></div>
+          <div id="priceExplainBody"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-audit" class="hidden">
+      <div class="panel">
+        <div class="flex-between">
+          <h2 style="margin:0">Audit Log</h2>
+          <button id="refreshAuditBtn">Refresh</button>
+        </div>
+        <table id="auditTable"><thead><tr><th>Time</th><th>Domain</th><th>Version</th><th>Final Price</th><th></th></tr></thead><tbody></tbody></table>
+      </div>
+    </section>
+
+    <section id="tab-copilot" class="hidden">
+      <div class="panel">
+        <h2>Natural-Language → Pricing Rule</h2>
+        <p class="muted">Describe a pricing rule in plain English. Try: "add a 25% surcharge when occupancy_rate &gt;= 0.85 and day_type is weekend"</p>
+        <textarea id="nlInput" class="context-input" style="height:80px"></textarea>
+        <div style="margin-top:10px">
+          <button id="nlGenerateBtn" class="primary">Generate Rule</button>
+        </div>
+      </div>
+      <div class="panel" id="nlResultPanel" style="display:none">
+        <h2>Suggested Rule</h2>
+        <div id="nlResultBody"></div>
+        <div style="margin-top:10px">
+          <button id="nlAddBtn">Add as Draft Version</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+<div id="toast" class="toast"></div>
+
+<div id="addDomainModal" class="modal-backdrop hidden">
+  <div class="modal">
+    <h2>Add a New Domain (Live, Configuration-Only)</h2>
+    <p class="muted">Paste a domain config JSON. No engine code changes needed — this is the point.</p>
+    <textarea id="newDomainJson" class="context-input" style="height:260px"></textarea>
+    <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end">
+      <button id="loadBankingSampleBtn">Load Banking Sample</button>
+      <button id="cancelAddDomainBtn">Cancel</button>
+      <button id="confirmAddDomainBtn" class="primary">Add &amp; Activate</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

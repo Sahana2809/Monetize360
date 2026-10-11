@@ -1,0 +1,55 @@
+[
+  {
+    "name": "weekend_high_occupancy_and_demand_surge",
+    "context": {
+      "list_price": 200,
+      "occupancy_rate": 0.9,
+      "day_type": "weekend",
+      "lead_time_days": 2,
+      "length_of_stay": 2,
+      "customer_segment": "standard",
+      "room_type": "standard"
+    },
+    "expected_price": 291.00
+  },
+  {
+    "name": "low_occupancy_early_bird_loyalty",
+    "context": {
+      "list_price": 150,
+      "occupancy_rate": 0.25,
+      "day_type": "weekday",
+      "lead_time_days": 75,
+      "length_of_stay": 3,
+      "customer_segment": "loyalty_gold",
+      "room_type": "standard"
+    },
+    "expected_price": 106.00
+  },
+  {
+    "name": "corporate_long_stay_competitor_match",
+    "context": {
+      "list_price": 300,
+      "occupancy_rate": 0.5,
+      "day_type": "weekday",
+      "lead_time_days": 20,
+      "length_of_stay": 10,
+      "customer_segment": "corporate",
+      "competitor_avg_price": 250,
+      "room_type": "suite"
+    },
+    "expected_price": 251.00
+  },
+  {
+    "name": "last_minute_holiday_surge_capped",
+    "context": {
+      "list_price": 100,
+      "occupancy_rate": 0.95,
+      "day_type": "holiday",
+      "lead_time_days": 1,
+      "length_of_stay": 1,
+      "customer_segment": "standard",
+      "room_type": "deluxe"
+    },
+    "expected_price": 160.00
+  }
+]

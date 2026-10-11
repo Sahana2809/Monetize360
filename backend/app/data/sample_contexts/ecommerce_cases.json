@@ -1,0 +1,40 @@
+[
+  {
+    "name": "low_inventory_high_velocity_vip",
+    "context": {
+      "list_price": 50,
+      "inventory_ratio": 0.05,
+      "demand_7d_units": 120,
+      "cart_quantity": 2,
+      "customer_segment": "vip",
+      "season": "in"
+    },
+    "expected_price": 64.99
+  },
+  {
+    "name": "overstock_clearance_bulk_new_customer",
+    "context": {
+      "list_price": 40,
+      "inventory_ratio": 0.9,
+      "demand_7d_units": 10,
+      "days_until_expiry": 7,
+      "cart_quantity": 10,
+      "customer_segment": "new",
+      "season": "in"
+    },
+    "expected_price": 20.99
+  },
+  {
+    "name": "competitor_undercut_out_of_season",
+    "context": {
+      "list_price": 80,
+      "inventory_ratio": 0.5,
+      "demand_7d_units": 50,
+      "cart_quantity": 1,
+      "customer_segment": "returning",
+      "competitor_price": 65,
+      "season": "out"
+    },
+    "expected_price": 49.99
+  }
+]

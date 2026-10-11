@@ -1,0 +1,41 @@
+[
+  {
+    "name": "moderate_surge_peak_driver_shortage",
+    "context": {
+      "base_fare": 10,
+      "demand_supply_ratio": 1.5,
+      "demand_supply_ratio_history": [1.3, 1.4, 1.5, 1.6, 1.7],
+      "weather_severity": "none",
+      "time_of_day": "peak",
+      "rider_segment": "standard",
+      "driver_supply_count": 2
+    },
+    "expected_price": 20.50
+  },
+  {
+    "name": "first_ride_promo_during_surge_order_sensitive",
+    "context": {
+      "base_fare": 10,
+      "demand_supply_ratio": 1.5,
+      "demand_supply_ratio_history": [1.3, 1.4, 1.5, 1.6, 1.7],
+      "weather_severity": "none",
+      "time_of_day": "offpeak",
+      "rider_segment": "first_ride_promo",
+      "driver_supply_count": 5
+    },
+    "expected_price": 10.50
+  },
+  {
+    "name": "very_high_surge_severe_weather_anomaly_guarded",
+    "context": {
+      "base_fare": 8,
+      "demand_supply_ratio": 3.0,
+      "demand_supply_ratio_history": [1.0, 1.05, 0.95, 1.1, 0.9],
+      "weather_severity": "severe",
+      "time_of_day": "offpeak",
+      "rider_segment": "standard",
+      "driver_supply_count": 5
+    },
+    "expected_price": 12.00
+  }
+]
