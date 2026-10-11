@@ -1,0 +1,122 @@
+{
+  "domain": "ride_hailing",
+  "version": 1,
+  "description": "Ride-hailing trip pricing: demand/supply surge, weather, time-of-day, rider segment, anomaly-guarded.",
+  "currency": "USD",
+  "entity": {"name": "trip", "description": "Price for one point-to-point trip"},
+  "attributes": [
+    {"name": "base_fare", "type": "number", "description": "Distance/time-based metered fare before surge"},
+    {"name": "demand_supply_ratio", "type": "number", "description": "Open ride requests / available drivers nearby"},
+    {"name": "demand_supply_ratio_history", "type": "number", "description": "Recent historical ratio samples for anomaly detection"},
+    {"name": "weather_severity", "type": "string", "enum": ["none", "moderate", "severe"]},
+    {"name": "time_of_day", "type": "string", "enum": ["offpeak", "peak", "night"]},
+    {"name": "rider_segment", "type": "string", "enum": ["standard", "premium", "first_ride_promo"]},
+    {"name": "driver_supply_count", "type": "number", "description": "Drivers available within dispatch radius"}
+  ],
+  "base_price": {"mode": "attribute", "attribute": "base_fare"},
+  "combination_mode": "sequential",
+  "signals": {
+    "anomaly_detection": {
+      "attr": "demand_supply_ratio",
+      "history_attr": "demand_supply_ratio_history",
+      "z_threshold": 3.0,
+      "output_attr": "anomaly_flag"
+    }
+  },
+  "rules": [
+    {
+      "id": "surge_tier_very_high",
+      "description": "Very high demand/supply imbalance surge",
+      "priority": 10,
+      "condition": {"attr": "demand_supply_ratio", "op": ">=", "value": 2.5},
+      "adjustment": {"type": "multiply", "value": 2.0},
+      "tags": ["demand", "surge"]
+    },
+    {
+      "id": "surge_tier_high",
+      "description": "High demand/supply imbalance surge",
+      "priority": 11,
+      "condition": {"attr": "demand_supply_ratio", "op": "between", "value": [1.8, 2.5]},
+      "adjustment": {"type": "multiply", "value": 1.6},
+      "tags": ["demand", "surge"]
+    },
+    {
+      "id": "surge_tier_moderate",
+      "description": "Moderate demand/supply imbalance surge",
+      "priority": 12,
+      "condition": {"attr": "demand_supply_ratio", "op": "between", "value": [1.3, 1.8]},
+      "adjustment": {"type": "multiply", "value": 1.3},
+      "tags": ["demand", "surge"]
+    },
+    {
+      "id": "severe_weather_surge",
+      "description": "Severe weather conditions push demand sharply up",
+      "priority": 20,
+      "condition": {"attr": "weather_severity", "op": "==", "value": "severe"},
+      "adjustment": {"type": "percent", "value": 25},
+      "tags": ["context"]
+    },
+    {
+      "id": "peak_hour_premium",
+      "description": "Peak commute hours premium",
+      "priority": 30,
+      "condition": {"attr": "time_of_day", "op": "==", "value": "peak"},
+      "adjustment": {"type": "percent", "value": 15},
+      "tags": ["timing"]
+    },
+    {
+      "id": "night_time_premium",
+      "description": "Late-night premium for driver availability",
+      "priority": 30,
+      "condition": {"attr": "time_of_day", "op": "==", "value": "night"},
+      "adjustment": {"type": "percent", "value": 10},
+      "tags": ["timing"]
+    },
+    {
+      "id": "demand_based_surge_addon",
+      "description": "Additional demand add-on once ratio exceeds 1.3",
+      "priority": 40,
+      "condition": {"attr": "demand_supply_ratio", "op": ">=", "value": 1.3},
+      "adjustment": {"type": "percent", "value": 20},
+      "tags": ["demand"]
+    },
+    {
+      "id": "first_ride_promo_discount",
+      "description": "Flat $5 first-ride promo credit for new riders",
+      "priority": 40,
+      "condition": {"attr": "rider_segment", "op": "==", "value": "first_ride_promo"},
+      "adjustment": {"type": "add", "value": -5},
+      "tags": ["segment", "promo"]
+    },
+    {
+      "id": "driver_supply_shortage",
+      "description": "Low nearby driver supply premium",
+      "priority": 50,
+      "condition": {"attr": "driver_supply_count", "op": "<", "value": 3},
+      "adjustment": {"type": "percent", "value": 15},
+      "tags": ["supply"]
+    },
+    {
+      "id": "premium_segment_addon",
+      "description": "Premium tier service add-on",
+      "priority": 60,
+      "condition": {"attr": "rider_segment", "op": "==", "value": "premium"},
+      "adjustment": {"type": "percent", "value": 5},
+      "tags": ["segment"]
+    },
+    {
+      "id": "anomaly_guard_cap",
+      "description": "If the demand/supply signal looks anomalous vs recent history, cap surge to 1.5x base as a safety guard",
+      "priority": 95,
+      "condition": {"attr": "anomaly_flag", "op": "==", "value": 1},
+      "adjustment": {"type": "formula", "formula": "min(price, base * 1.5)"},
+      "tags": ["ml-assist", "guardrail"]
+    }
+  ],
+  "constraints": [
+    {"type": "min_price", "value": 3},
+    {"type": "max_price", "value": 200},
+    {"type": "max_increase_pct", "value": 2.0},
+    {"type": "round", "value": 0.5, "rounding": "nearest"}
+  ]
+}

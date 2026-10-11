@@ -1,0 +1,112 @@
+{
+  "domain": "hospitality",
+  "version": 1,
+  "description": "Hotel room-night dynamic pricing: occupancy, seasonality, lead time, segment and competitor-aware rate.",
+  "currency": "USD",
+  "entity": {"name": "room_night", "description": "Price for one room, one night"},
+  "attributes": [
+    {"name": "list_price", "type": "number", "description": "Published rack rate for the room type"},
+    {"name": "occupancy_rate", "type": "number", "description": "Current hotel occupancy, 0-1"},
+    {"name": "day_type", "type": "string", "enum": ["weekday", "weekend", "holiday"]},
+    {"name": "lead_time_days", "type": "number", "description": "Days between booking and stay"},
+    {"name": "length_of_stay", "type": "number", "description": "Nights booked"},
+    {"name": "customer_segment", "type": "string", "enum": ["standard", "loyalty_gold", "corporate"]},
+    {"name": "competitor_avg_price", "type": "number", "description": "Average competitor rate for comparable room"},
+    {"name": "room_type", "type": "string", "enum": ["standard", "deluxe", "suite"]}
+  ],
+  "base_price": {"mode": "attribute", "attribute": "list_price"},
+  "combination_mode": "sequential",
+  "signals": {
+    "demand_prediction": {
+      "output_attr": "demand_index",
+      "features": [
+        {"attr": "occupancy_rate", "weight": 0.5},
+        {"attr": "day_type", "weight": 0.3, "match": ["weekend", "holiday"]},
+        {"attr": "lead_time_days", "weight": 0.2, "max_threshold": 3}
+      ]
+    }
+  },
+  "rules": [
+    {
+      "id": "weekend_holiday_high_occupancy_surge",
+      "description": "Surge when occupancy is at least 85% on a weekend or holiday night",
+      "priority": 10,
+      "condition": {"all": [
+        {"attr": "occupancy_rate", "op": ">=", "value": 0.85},
+        {"any": [{"attr": "day_type", "op": "==", "value": "weekend"}, {"attr": "day_type", "op": "==", "value": "holiday"}]}
+      ]},
+      "adjustment": {"type": "percent", "value": 30},
+      "tags": ["seasonality", "demand"]
+    },
+    {
+      "id": "predicted_demand_surge",
+      "description": "ML-predicted demand index signals an impending surge even before occupancy confirms it",
+      "priority": 15,
+      "condition": {"attr": "demand_index", "op": ">=", "value": 0.75},
+      "adjustment": {"type": "percent", "value": 12},
+      "tags": ["demand", "ml-assist"]
+    },
+    {
+      "id": "low_occupancy_fill_discount",
+      "description": "Discount to fill rooms when occupancy is below 40%",
+      "priority": 20,
+      "condition": {"attr": "occupancy_rate", "op": "<", "value": 0.4},
+      "adjustment": {"type": "percent", "value": -15},
+      "tags": ["demand"]
+    },
+    {
+      "id": "last_minute_premium",
+      "description": "Premium for bookings made 1 day or less before stay",
+      "priority": 30,
+      "condition": {"attr": "lead_time_days", "op": "<=", "value": 1},
+      "adjustment": {"type": "percent", "value": 10},
+      "tags": ["timing"]
+    },
+    {
+      "id": "early_bird_discount",
+      "description": "Discount for bookings made 60+ days in advance",
+      "priority": 40,
+      "condition": {"attr": "lead_time_days", "op": ">=", "value": 60},
+      "adjustment": {"type": "percent", "value": -8},
+      "tags": ["timing"]
+    },
+    {
+      "id": "long_stay_discount",
+      "description": "Discount for stays of 7 nights or more",
+      "priority": 50,
+      "condition": {"attr": "length_of_stay", "op": ">=", "value": 7},
+      "adjustment": {"type": "percent", "value": -5},
+      "tags": ["tier"]
+    },
+    {
+      "id": "loyalty_gold_discount",
+      "description": "Loyalty program discount for Gold-tier members",
+      "priority": 60,
+      "condition": {"attr": "customer_segment", "op": "==", "value": "loyalty_gold"},
+      "adjustment": {"type": "percent", "value": -10},
+      "tags": ["segment"]
+    },
+    {
+      "id": "corporate_negotiated_rate",
+      "description": "Negotiated corporate account discount",
+      "priority": 70,
+      "condition": {"attr": "customer_segment", "op": "==", "value": "corporate"},
+      "adjustment": {"type": "percent", "value": -12},
+      "tags": ["segment"]
+    },
+    {
+      "id": "competitor_price_match",
+      "description": "Never price more than 5% above the known competitor average",
+      "priority": 80,
+      "condition": {"attr": "competitor_avg_price", "op": "exists"},
+      "adjustment": {"type": "formula", "formula": "min(price, competitor_avg_price * 1.05)"},
+      "tags": ["competition"]
+    }
+  ],
+  "constraints": [
+    {"type": "min_price", "value": 40},
+    {"type": "max_price", "value": 900},
+    {"type": "max_increase_pct", "value": 0.6},
+    {"type": "round", "value": 1, "rounding": "nearest"}
+  ]
+}

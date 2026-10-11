@@ -1,0 +1,124 @@
+{
+  "domain": "ecommerce",
+  "version": 1,
+  "description": "E-commerce SKU pricing: inventory scarcity/overstock, demand velocity, bulk tiers, segment, competitor and clearance.",
+  "currency": "USD",
+  "entity": {"name": "sku", "description": "Price for one unit of a catalog SKU"},
+  "attributes": [
+    {"name": "list_price", "type": "number", "description": "Standard catalog price"},
+    {"name": "inventory_ratio", "type": "number", "description": "Units in stock / warehouse capacity, 0-1"},
+    {"name": "demand_7d_units", "type": "number", "description": "Units sold in the trailing 7 days"},
+    {"name": "days_until_expiry", "type": "number", "description": "Days until perishable/seasonal expiry, if applicable"},
+    {"name": "cart_quantity", "type": "number", "description": "Quantity of this SKU in the current cart"},
+    {"name": "customer_segment", "type": "string", "enum": ["new", "returning", "vip"]},
+    {"name": "competitor_price", "type": "number", "description": "Lowest known competitor price for the same SKU"},
+    {"name": "season", "type": "string", "enum": ["in", "out"]}
+  ],
+  "base_price": {"mode": "attribute", "attribute": "list_price"},
+  "combination_mode": "sequential",
+  "signals": {
+    "demand_prediction": {
+      "output_attr": "demand_index",
+      "features": [
+        {"attr": "demand_7d_units", "weight": 0.6, "min_threshold": 80},
+        {"attr": "inventory_ratio", "weight": 0.4, "max_threshold": 0.2}
+      ]
+    }
+  },
+  "rules": [
+    {
+      "id": "low_inventory_scarcity_markup",
+      "description": "Scarcity markup when inventory ratio drops below 10%",
+      "priority": 10,
+      "condition": {"attr": "inventory_ratio", "op": "<", "value": 0.1},
+      "adjustment": {"type": "percent", "value": 20},
+      "tags": ["supply"]
+    },
+    {
+      "id": "predicted_trending_markup",
+      "description": "ML-predicted demand index flags a trending SKU",
+      "priority": 16,
+      "condition": {"attr": "demand_index", "op": ">=", "value": 0.6},
+      "adjustment": {"type": "percent", "value": 8},
+      "tags": ["demand", "ml-assist"]
+    },
+    {
+      "id": "high_velocity_markup",
+      "description": "Markup for SKUs selling fast (100+ units in 7 days)",
+      "priority": 15,
+      "condition": {"attr": "demand_7d_units", "op": ">=", "value": 100},
+      "adjustment": {"type": "percent", "value": 10},
+      "tags": ["demand"]
+    },
+    {
+      "id": "overstock_discount",
+      "description": "Discount when inventory ratio exceeds 80%",
+      "priority": 20,
+      "condition": {"attr": "inventory_ratio", "op": ">", "value": 0.8},
+      "adjustment": {"type": "percent", "value": -15},
+      "tags": ["supply"]
+    },
+    {
+      "id": "clearance_expiry_discount",
+      "description": "Clearance discount for items expiring within 14 days",
+      "priority": 21,
+      "condition": {"attr": "days_until_expiry", "op": "<=", "value": 14},
+      "adjustment": {"type": "percent", "value": -25},
+      "tags": ["clearance"]
+    },
+    {
+      "id": "bulk_discount_tier1",
+      "description": "Bulk discount for 5-9 units in cart",
+      "priority": 30,
+      "condition": {"attr": "cart_quantity", "op": "between", "value": [5, 9]},
+      "adjustment": {"type": "percent", "value": -5},
+      "tags": ["tier"]
+    },
+    {
+      "id": "bulk_discount_tier2",
+      "description": "Bulk discount for 10+ units in cart",
+      "priority": 31,
+      "condition": {"attr": "cart_quantity", "op": ">=", "value": 10},
+      "adjustment": {"type": "percent", "value": -10},
+      "tags": ["tier"]
+    },
+    {
+      "id": "vip_customer_discount",
+      "description": "VIP loyalty discount",
+      "priority": 40,
+      "condition": {"attr": "customer_segment", "op": "==", "value": "vip"},
+      "adjustment": {"type": "percent", "value": -8},
+      "tags": ["segment"]
+    },
+    {
+      "id": "new_customer_promo",
+      "description": "First-purchase promo discount",
+      "priority": 40,
+      "condition": {"attr": "customer_segment", "op": "==", "value": "new"},
+      "adjustment": {"type": "percent", "value": -5},
+      "tags": ["segment", "promo"]
+    },
+    {
+      "id": "competitor_undercut_match",
+      "description": "Undercut the lowest known competitor price by 2%",
+      "priority": 50,
+      "condition": {"attr": "competitor_price", "op": "exists"},
+      "adjustment": {"type": "formula", "formula": "min(price, competitor_price * 0.98)"},
+      "tags": ["competition"]
+    },
+    {
+      "id": "out_of_season_discount",
+      "description": "Discount for out-of-season inventory",
+      "priority": 60,
+      "condition": {"attr": "season", "op": "==", "value": "out"},
+      "adjustment": {"type": "percent", "value": -20},
+      "tags": ["seasonality"]
+    }
+  ],
+  "constraints": [
+    {"type": "min_price", "value": 1},
+    {"type": "max_decrease_pct", "value": 0.5},
+    {"type": "max_increase_pct", "value": 0.4},
+    {"type": "round", "value": 1, "rounding": "charm"}
+  ]
+}
