@@ -1,7 +1,5 @@
 # Monetize360 — Universal Dynamic Pricing Engine
 
-**Team ShePlusPlus** — Problem 5B
-
 A single, configurable, explainable dynamic pricing engine that prices across
 hospitality, ride-hailing, e-commerce and banking from **JSON configuration
 alone** — the evaluation engine contains zero domain-specific code. Adding a
